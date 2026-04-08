@@ -1,0 +1,136 @@
+signals:
+  # Price & Momentum
+  momentum_short:
+    enabled: true
+    category: momentum
+    lookback_d: 12
+    short_window: 4
+    medium_window: 24
+    description: "Short-term momentum (4h vs 24h)"
+
+  momentum_medium:
+    enabled: true
+    category: momentum
+    lookback_d: 24
+    short_window: 12
+    medium_window: 72
+    description: "Medium-term momentum (12h vs 3d)"
+
+  momentum_roc:
+    enabled: true
+    category: momentum
+    lookback_d: 24
+    window: 24
+    description: "Rate of change acceleration (2nd derivative)"
+
+  cross_asset_momentum:
+    enabled: true
+    category: momentum
+    lookback_d: 24
+    reference_asset: "BTC-USD"
+    description: "BTC momentum as leading signal for alts"
+
+  # Mean Reversion
+  cross_pair_spread:
+    enabled: true
+    category: mean_reversion
+    lookback_d: 48
+    pair: "ETH/BTC"
+    rolling_window: 720  # 30 days of hourly bars
+    description: "ETH/BTC ratio deviation from 30d rolling mean"
+
+  bollinger_zscore:
+    enabled: true
+    category: mean_reversion
+    lookback_d: 24
+    bollinger_window: 20
+    num_std: 2.0
+    description: "Bollinger band z-score mean reversion"
+
+  funding_rate:
+    enabled: true
+    category: mean_reversion
+    lookback_d: 12
+    description: "Extreme funding rates predict spot reversals"
+
+  # Volatility
+  vol_regime:
+    enabled: true
+    category: volatility
+    lookback_d: 24
+    realized_window: 336  # 14 days of hourly bars
+    description: "Volatility regime detection (low/normal/high)"
+
+  vol_of_vol:
+    enabled: true
+    category: volatility
+    lookback_d: 24
+    window: 168  # 7 days of hourly bars
+    description: "Vol-of-vol regime transition detector"
+
+  realized_implied_gap:
+    enabled: false
+    category: volatility
+    lookback_d: 24
+    description: "Realized vs implied volatility gap"
+
+  # Microstructure
+  orderbook_imbalance:
+    enabled: false  # Requires L2 data accumulation
+    category: microstructure
+    lookback_d: 12
+    depth_pct: 2.0
+    description: "Bid vs ask depth imbalance within 2% of mid"
+
+  effective_spread:
+    enabled: false
+    category: microstructure
+    lookback_d: 12
+    description: "Effective spread expansion/compression"
+
+  vpin:
+    enabled: false
+    category: microstructure
+    lookback_d: 12
+    bucket_size: 100
+    description: "Volume-Synchronized Probability of Informed Trading"
+
+  # On-Chain
+  exchange_net_flow:
+    enabled: true
+    category: onchain
+    lookback_d: 48
+    description: "Net exchange inflow/outflow pressure"
+
+  stablecoin_ratio:
+    enabled: true
+    category: onchain
+    lookback_d: 48
+    description: "Stablecoin supply ratio (dry powder indicator)"
+
+  whale_movement:
+    enabled: false
+    category: onchain
+    lookback_d: 24
+    description: "Large transaction whale movements"
+
+  # Sentiment & Macro
+  fear_greed:
+    enabled: true
+    category: sentiment
+    lookback_d: 48
+    description: "Fear & Greed Index contrarian signal"
+
+  dxy_correlation:
+    enabled: true
+    category: macro
+    lookback_d: 96
+    fred_series: "DTWEXBGS"
+    description: "USD strength inverse correlation"
+
+  m2_money_supply:
+    enabled: true
+    category: macro
+    lookback_d: 96
+    fred_series: "M2SL"
+    description: "M2 money supply expansion signal"

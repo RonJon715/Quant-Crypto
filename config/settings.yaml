@@ -1,0 +1,68 @@
+exchange:
+  api_key: ""          # Load from env var COINBASE_API_KEY
+  api_secret: ""       # Load from env var COINBASE_API_SECRET
+  sandbox: true
+
+universe:
+  assets: ["BTC-USD", "ETH-USD", "SOL-USD"]
+  quote_currency: "USD"
+
+data_providers:
+  ccxt:
+    exchanges: ["binance", "kraken", "okx"]
+    default_timeframe: "1h"
+    backfill_months: 6
+  cryptocompare:
+    api_key: ""        # Load from env var CRYPTOCOMPARE_API_KEY
+    enabled: true
+  glassnode:
+    api_key: ""        # Load from env var GLASSNODE_API_KEY
+    enabled: true
+  fred:
+    api_key: ""        # Load from env var FRED_API_KEY
+    series: ["DFF", "T10Y2Y", "DTWEXBGS", "M2SL"]
+  fear_greed:
+    enabled: true
+  defi_llama:
+    enabled: true
+    chains: ["Ethereum", "Solana"]
+  blockchain_info:
+    enabled: true
+  whale_alert:
+    api_key: ""        # Load from env var WHALE_ALERT_API_KEY
+    min_usd_value: 500000
+  tardis:
+    api_key: ""        # Load from env var TARDIS_API_KEY
+    enabled: false
+  polymarket:
+    enabled: false
+  lunarcrush:
+    api_key: ""        # Load from env var LUNARCRUSH_API_KEY
+    enabled: false
+
+engine:
+  cycle_interval_minutes: 15
+  min_signals_required: 5
+  min_edge_threshold_bps: 50
+  min_edge_threshold_alt_bps: 100
+  combination_lookback_M: 200
+  reweight_interval: "daily"
+
+kelly:
+  max_fraction: 0.5
+  monte_carlo_paths: 10000
+  max_single_position_pct: 15
+  max_total_exposure_pct: 80
+  cash_reserve_pct: 20
+
+execution:
+  vwap_slices: 5
+  vwap_spread_bps: 10
+  vwap_max_duration_seconds: 300
+  vpin_pause_threshold: 0.8
+
+risk:
+  max_drawdown_7d_pct: 10
+  max_drawdown_30d_pct: 15
+  api_error_pause_threshold: 5
+  api_error_pause_seconds: 300
