@@ -1,0 +1,31 @@
+[Unit]
+Description=Alpha Combination Crypto Trading Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=botuser
+Group=botuser
+WorkingDirectory=/opt/alpha-bot
+EnvironmentFile=/opt/alpha-bot/.env
+ExecStart=/opt/alpha-bot/venv/bin/python main.py --paper
+Restart=on-failure
+RestartSec=30
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=alpha-bot
+
+# Security hardening
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/alpha-bot
+
+[Install]
+WantedBy=multi-user.target
