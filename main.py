@@ -85,9 +85,9 @@ def load_config(config_path: str = "config/settings.yaml") -> dict:
     return config
 
 
-def build_signals(config: dict) -> list:
+def build_signals(config: dict, config_dir: str = "config") -> list:
     """Instantiate all enabled signals from configuration."""
-    signals_config_path = "config/signals.yaml"
+    signals_config_path = os.path.join(config_dir, "signals.yaml")
     with open(signals_config_path) as f:
         sig_config = yaml.safe_load(f)
 
@@ -371,7 +371,7 @@ async def run_cycle(
     logger.info("=== Cycle End (%.1fs) ===", time.time() - cycle_start)
 
 
-async def run(config: dict, paper_mode: bool, cycle_once: bool):
+async def run(config: dict, paper_mode: bool, cycle_once: bool, config_dir: str = "config"):
     """Main bot loop."""
     global _shutdown
 
@@ -392,7 +392,7 @@ async def run(config: dict, paper_mode: bool, cycle_once: bool):
         max_duration_seconds=config["execution"]["vwap_max_duration_seconds"],
     )
 
-    signals = build_signals(config)
+    signals = build_signals(config, config_dir)
     engine = CombinationEngine(
         signals=signals,
         lookback_M=config["engine"]["combination_lookback_M"],
@@ -486,7 +486,8 @@ def main():
     signal.signal(signal.SIGTERM, handle_signal)
 
     config = load_config(args.config)
-    asyncio.run(run(config, args.paper, args.cycle_once))
+    config_dir = str(Path(args.config).parent)
+    asyncio.run(run(config, args.paper, args.cycle_once, config_dir))
 
 
 if __name__ == "__main__":
