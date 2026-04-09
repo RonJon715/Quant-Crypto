@@ -397,3 +397,185 @@ This shouldn't happen on a 1GB+ server. If it does:
 ### I can't connect — forgot my server IP
 
 Log in to your cloud provider's web dashboard. The IP is shown on your server/droplet/instance page.
+
+---
+
+## Part 13: Running Multiple Different Bots on One Server
+
+You can run completely different trading bots (different codebases, different strategies, different exchanges) on the same cheap server. Each bot gets its own isolated environment.
+
+### How it works
+
+```
+Your $4-6/mo Server
+├── /opt/alpha-bot/          ← This bot (alpha combination engine)
+│   ├── venv/                   Own Python packages
+│   ├── .env                    Own API keys
+│   └── candles.db              Own database
+│
+├── /opt/dca-bot/            ← A DCA bot (completely different code)
+│   ├── venv/
+│   ├── .env
+│   └── ...
+│
+├── /opt/grid-bot/           ← A grid trading bot
+│   ├── venv/
+│   ├── .env
+│   └── ...
+│
+└── /opt/arb-bot/            ← An arbitrage bot
+    ├── venv/
+    ├── .env
+    └── ...
+```
+
+Each bot:
+- Has its own directory under `/opt/`
+- Has its own Python virtual environment (no package conflicts)
+- Has its own `.env` file for API keys (different exchange accounts)
+- Has its own systemd service (independent start/stop/restart)
+- Has its own log stream (view with `journalctl`)
+- Auto-starts on server reboot
+- Auto-restarts if it crashes
+
+### Add a new bot (one command)
+
+The `add_bot.sh` script works with any Python bot from any git repository:
+
+```bash
+sudo /opt/alpha-bot/deploy/add_bot.sh <name> <git-repo-url> [branch] [start-command]
+```
+
+### Example: Add a DCA bot
+
+```bash
+sudo /opt/alpha-bot/deploy/add_bot.sh dca-bot https://github.com/youruser/dca-bot.git
+```
+
+This will:
+1. Clone the repo to `/opt/dca-bot/`
+2. Create a virtual environment and install dependencies
+3. Create a `.env` file for API keys
+4. Create and enable a systemd service
+
+Then configure and start it:
+```bash
+# Add API keys
+sudo nano /opt/dca-bot/.env
+
+# Start it
+sudo systemctl start dca-bot
+
+# Check it's running
+sudo systemctl status dca-bot
+
+# View logs
+sudo journalctl -u dca-bot -f
+```
+
+### Example: Add a grid trading bot with a custom start command
+
+```bash
+sudo /opt/alpha-bot/deploy/add_bot.sh grid-bot https://github.com/youruser/grid-bot.git main "python run.py --config prod.yaml"
+```
+
+### Example: Add a bot from a private repo
+
+```bash
+# Use an SSH URL for private repos (requires SSH key on server)
+sudo /opt/alpha-bot/deploy/add_bot.sh my-private-bot git@github.com:youruser/private-bot.git
+```
+
+To set up SSH keys on your server for private repos:
+```bash
+# Generate a deploy key
+sudo -u botuser ssh-keygen -t ed25519 -f /home/botuser/.ssh/id_ed25519 -N ""
+
+# Show the public key — add this as a deploy key in your GitHub repo settings
+sudo cat /home/botuser/.ssh/id_ed25519.pub
+```
+
+### See all bots running on your server
+
+```bash
+sudo /opt/alpha-bot/deploy/list_all_bots.sh
+```
+
+Output:
+```
+============================================
+  All Trading Bots on This Server
+============================================
+
+BOT                  STATUS     MEMORY     DIRECTORY
+---                  ------     ------     ---------
+alpha-bot            active     180MB      /opt/alpha-bot/
+dca-bot              active     45MB       /opt/dca-bot/
+grid-bot             active     92MB       /opt/grid-bot/
+arb-bot              inactive   --         /opt/arb-bot/
+
+System Resources:
+  Memory:   420MB used / 3600MB available
+  Disk:     2.1G used / 37G available
+  Load:     0.02, 0.01, 0.00
+```
+
+### Managing individual bots
+
+Every bot follows the same pattern:
+
+| Task | Command |
+|------|---------|
+| Start | `sudo systemctl start <bot-name>` |
+| Stop | `sudo systemctl stop <bot-name>` |
+| Restart | `sudo systemctl restart <bot-name>` |
+| Status | `sudo systemctl status <bot-name>` |
+| Logs (live) | `sudo journalctl -u <bot-name> -f` |
+| Logs (recent) | `sudo journalctl -u <bot-name> -n 100` |
+| Edit secrets | `sudo nano /opt/<bot-name>/.env` |
+| Update code | `cd /opt/<bot-name> && sudo -u botuser git pull && sudo systemctl restart <bot-name>` |
+| Disable on boot | `sudo systemctl disable <bot-name>` |
+
+### Remove a bot completely
+
+```bash
+# Stop and disable the service
+sudo systemctl stop <bot-name>
+sudo systemctl disable <bot-name>
+
+# Remove the service file
+sudo rm /etc/systemd/system/<bot-name>.service
+sudo systemctl daemon-reload
+
+# Remove the bot directory
+sudo rm -rf /opt/<bot-name>
+```
+
+### How many bots can one server handle?
+
+| Server Tier | RAM | Approx. Bots |
+|-------------|-----|---------------|
+| $4-6/mo (1-2GB) | 1-2 GB | 3-5 lightweight bots |
+| $8-12/mo (4GB) | 4 GB | 8-15 bots |
+| $20/mo (8GB) | 8 GB | 20+ bots |
+
+Most Python trading bots use 50-200MB of RAM. The alpha combination bot in this repo is on the heavier end (~180MB) because of numpy/pandas/sklearn. Simpler bots (DCA, grid) typically use 30-80MB.
+
+**CPU is almost never the bottleneck.** Trading bots spend 99% of their time sleeping between cycles. Even a single-core VPS can handle many bots.
+
+### Tips for running multiple bots
+
+1. **Use different Coinbase API keys per bot.** Each key can be scoped to a specific portfolio. This prevents bots from interfering with each other's positions.
+
+2. **Stagger cycle times.** If two bots both run every 15 minutes, offset them so they don't hit APIs simultaneously:
+   - Bot A: cycles at :00, :15, :30, :45
+   - Bot B: cycles at :05, :20, :35, :50
+
+3. **Monitor total memory.** Run `htop` or `free -m` occasionally. If memory gets tight, upgrade the server — it's cheaper than debugging OOM kills.
+
+4. **Use Telegram/Discord alerts for all bots.** You can use the same Telegram bot token but different chat groups, or separate Discord webhook channels.
+
+5. **Back up your `.env` files.** They contain your API keys. If you need to rebuild the server, you'll need them:
+   ```bash
+   sudo tar czf ~/bot-env-backup.tar.gz /opt/*/.env
+   ```
